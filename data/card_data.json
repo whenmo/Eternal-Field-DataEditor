@@ -1,0 +1,103 @@
+{
+    "typ": {
+        "default": "monstyp",
+        "mapping": {
+            "monstyp": {
+                "display": "造物卡",
+                "default": "0x1",
+                "options": {
+                    "0x1": "子类型 N/A"
+                }
+            },
+            "calltyp": {
+                "display": "启迪卡",
+                "default": "0x2",
+                "options": {
+                    "0x2": "通常",
+                    "0x12": "速攻",
+                    "0x22": "永续",
+                    "0x42": "装备"
+                }
+            },
+            "banetyp": {
+                "display": "灾祸卡",
+                "default": "0x8",
+                "options": {
+                    "0x4": "通常",
+                    "0x24": "永续",
+                    "0x84": "反击"
+                }
+            },
+            "areatyp": {
+                "display": "领域卡",
+                "default": "0x8",
+                "options": {
+                    "0x8": "子类型 N/A"
+                }
+            }
+        }
+    },
+    "life": {
+        "display": "生命",
+        "default": "0",
+        "range": {
+            "N/A": "0",
+            "min": "5",
+            "max": "40"
+        }
+    },
+    "cost": {
+        "display": "费用",
+        "default": "0",
+        "range": {
+            "min": "0",
+            "max": "10"
+        }
+    },
+    "atk": {
+        "display": "ATK",
+        "default": "0",
+        "range": {
+            "?": "-2",
+            "min": "0",
+            "max": "20"
+        }
+    },
+    "from": {
+        "display": "阵营",
+        "default": "0x0",
+        "mapping": {
+            "0x0": "N/A",
+            "0x1": "极境",
+            "0x2": "深渊",
+            "0x4": "天灾",
+            "0x8": "文明",
+            "0x10": "异界",
+            "0x20": "自然"
+        }
+    },
+    "race": {
+        "display": "种族",
+        "default": "0x0",
+        "mapping": {
+            "0x0": "N/A",
+            "0x1": "龙",
+            "0x2": "魔法师",
+            "0x4": "天使",
+            "0x8": "恶魔"
+        }
+    },
+    "setcode": {
+        "default": "0x0",
+        "mapping": {
+            "-1": "自定义",
+            "0x0": "字段 N/A",
+            "0x1": "正义盟军",
+            "0x2": "次世代",
+            "0x1002": "真次世代",
+            "0x4": "亚马逊",
+            "0x5": "秘仪之力",
+            "0x6": "暗黑界"
+        }
+    }
+}

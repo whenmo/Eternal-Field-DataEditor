@@ -1,68 +1,48 @@
 import sys
 import os
 import webbrowser
-from ConfigLoader import load_config, update_history, save_config
-from DataBase import creat_new_cdb
-from DataEditorFrom import DataEditor
-from ItemLib import FileBtnToolBar
-from Global import set_main
-from PyQt6.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QFileDialog,
-    QToolBar,
-    QToolButton,
-    QMenu,
-    QMessageBox,
-)
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QToolBar, QMenu
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt, QDataStream
 from PyQt6.QtNetwork import QLocalServer, QLocalSocket
-from Global import PATH_ICON
-
-APP_ID = "EternalFieldDataEditor"
-
-
-def new_toolbtn(title: str, toolbar: QToolBar) -> QMenu:
-    btn = QToolButton()
-    btn.setText(title)
-    toolbar.addWidget(btn)
-    menu = QMenu()
-    btn.setMenu(menu)
-    btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-    return menu
-
-
-def new_action(title: str, frame, menu: QMenu, func=None) -> QAction:
-    act = QAction(title, frame)
-    menu.addAction(act)
-    if func:
-        act.triggered.connect(func)
-    return act
+from scripts.global_set.app_set import (
+    APP_ID,
+    APP_SIZE,
+    PATH_ICON,
+    VER,
+    WRITEER,
+    GIT_URL,
+)
+from scripts.global_set.card_db import CDB, create_database_file
+from scripts.global_set.config_set import ConfigSet, get_config
+from scripts.data_edit.data_edit_from import DataEditFrom
+from scripts.main_item import new_toolbtn, new_action, FileBtnToolBar
+import scripts.basic_item.msg_item as show
 
 
 class MainWindow(QMainWindow):
-    file_list: FileBtnToolBar
-    dataeditor: DataEditor
+    config: ConfigSet
+    local_server: QLocalServer | None
     title: str
     act_paste: QAction
     hist_menu: QMenu
-    config: dict
-    local_server: QLocalServer | None
+    file_list: FileBtnToolBar
+    dataeditor: DataEditFrom
 
     def __init__(self, cdb_path: str = None, local_server: QLocalServer = None):
         super().__init__()
-        self.config = load_config()
-        set_main(self)
-        self.title = "Eternal Field DataEditor"
-        self.setWindowTitle(self.title)
-        self.resize(850, 650)
-        self.setWindowIcon(QIcon(PATH_ICON))
+        # ---------------- 配置文件 ---------------
+        self.config = get_config()
         # ---------------- 處理單例通信 ----------------
         self.local_server = local_server
         if self.local_server:
             self.local_server.newConnection.connect(self.handle_incoming_connection)
-        # 工具列
+        # ---------------- 初始化 ----------------
+        self.title = APP_ID.replace("_", " ")
+        self.setWindowTitle(self.title)
+        self.resize(*APP_SIZE)
+        self.setWindowIcon(QIcon(PATH_ICON))
+        # ---------------- 工具列 ----------------
         main_toolbar = QToolBar("main")
         self.addToolBar(main_toolbar)
         # ---------------- 文件 ----------------
@@ -75,22 +55,26 @@ class MainWindow(QMainWindow):
         self.act_paste = new_action("粘贴卡片", self, file_menu)
         # ---------------- 歷史 ----------------
         self.hist_menu = new_toolbtn("数据库历史", main_toolbar)
-        self.updata_hist_menu()
+        self._updata_hist_menu()
         # ---------------- 幫助 ----------------
         help_menu = new_toolbtn("帮助", main_toolbar)
         new_action("关于", self, help_menu, self.about_info)
         new_action("github", self, help_menu, self.go_github)
-        # ---------------- 檔案列表 ----------------
+        # ---------------- 檔案工具列 ----------------
         self.addToolBarBreak()  # 讓下一個工具列換行，放在主工具列下方
         self.file_list = FileBtnToolBar()
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.file_list)
         # ---------------- 數據編輯器 ----------------
-        self.dataeditor = DataEditor()
+        self.dataeditor = DataEditFrom()
         self.setCentralWidget(self.dataeditor)
         # 綁定事件
         act_copy_sel.triggered.connect(self.dataeditor.copy_select_card)
         act_copy_all.triggered.connect(self.dataeditor.copy_all_card)
         self.act_paste.triggered.connect(self.dataeditor.paste_cards)
+        # ---------------- 信號接收 ----------------
+        self.dataeditor.update_past_txt.connect(self.update_past_txt)
+        self.file_list.show_dataeditor.connect(self.show_dataeditor)
+        self.file_list.load_cdb.connect(self.load_cdb)
         # ---------------- 處理命令行參數 (自動載入雙擊的文件) ----------------
         if cdb_path and os.path.exists(cdb_path):
             self.open_path(cdb_path)
@@ -122,39 +106,28 @@ class MainWindow(QMainWindow):
                 self.open_path(path)
         except Exception as e:
             # 處理讀取異常
-            self.show_error(f"讀取文件路徑時發生錯誤: {e}")
+            show.error(f"讀取文件路徑時發生錯誤 : {e}")
         # 完成讀取後，斷開套接字連接
         socket.disconnectFromServer()
 
-    # ---------------- 彈窗 ----------------
-    # 詢問組件
-    def show_quest(self, msg: str, can_cancel: bool = False) -> bool | None:
-        yes = QMessageBox.StandardButton.Yes
-        no = QMessageBox.StandardButton.No
-        cancel = QMessageBox.StandardButton.Cancel
-        if can_cancel:
-            res = QMessageBox.question(self, "询问", msg, yes | no | cancel)
-        else:
-            res = QMessageBox.question(self, "询问", msg, yes | no)
-        if res == yes:
-            return True
-        if res == no:
-            return False
-        return None
+    # ---------------- 信號事件 ----------------
+    def update_past_txt(self, count: int):
+        title = "粘贴卡片"
+        if count > 0:
+            title += f" ({count})"
+        self.act_paste.setText(title)
 
-    # 錯誤組件
-    def show_error(self, msg: str):
-        QMessageBox.warning(self, "错误", msg)
+    def show_dataeditor(self, visible: bool):
+        self.dataeditor.setVisible(visible)
 
-    # 提示組件
-    def show_msg(self, msg: str):
-        QMessageBox.information(self, "提示", msg)
+    def load_cdb(self, cdb: CDB):
+        self.dataeditor.set_cdb(cdb)
+        self.show_dataeditor(True)
 
     # ---------------- 文件 ----------------
     # 根據路徑打開 cdb
     def open_path(self, path: str):
         self.add_hist_path(path)
-        self.updata_hist_menu()
         self.file_list.add_cdbfile(path)
 
     # 開啟 cdb
@@ -173,26 +146,14 @@ class MainWindow(QMainWindow):
         )
         if not path:
             return
-        creat_new_cdb(path)
+        create_database_file(path)
         self.open_path(path)
 
-    # ---------------- 粘贴卡片 ----------------
-    def update_paste_action_text(self, count: int):
-        title = "粘贴卡片"
-        if count > 0:
-            title += f" ({count})"
-        self.act_paste.setText(title)
-
     # ---------------- 歷史 ----------------
-    # 獲取歷史列表
-    def get_hist_list(self) -> list[str]:
-        return self.config.get("DATABASE_HISTORY", {}).get("history_paths", [])
-
     # 更新歷史欄
-    def updata_hist_menu(self):
+    def _updata_hist_menu(self):
         self.hist_menu.clear()
-        hist_list = self.get_hist_list()
-        for path in hist_list:
+        for path in self.config.get_hist_list():
             new_action(
                 path,
                 self,
@@ -204,26 +165,22 @@ class MainWindow(QMainWindow):
 
     # 增加歷史
     def add_hist_path(self, path: str):
-        self.config = update_history(self.config, path)
-        self.updata_hist_menu()
+        self.config.add_database_hist(path)
+        self._updata_hist_menu()
 
     # 刪除歷史
     def clear_hist(self):
-        if "DATABASE_HISTORY" in self.config:
-            self.config["DATABASE_HISTORY"]["history_paths"] = []
-            save_config(self.config)
-        self.updata_hist_menu()
+        self.config.clear_database_hist()
+        self._updata_hist_menu()
 
     # ---------------- 幫助 ----------------
     # 關於
     def about_info(self):
-        msg = "ver :  1.0\n作者 : whenmo"
-        self.show_msg(msg)
+        show.msg(f"version : {VER}\n作者 : {WRITEER}")
 
     # github
     def go_github(self):
-        url = "https://github.com/whenmo/Eternal-Field-DataEditor"
-        webbrowser.open_new_tab(url)
+        webbrowser.open_new_tab(GIT_URL)
 
 
 if __name__ == "__main__":
@@ -241,9 +198,7 @@ if __name__ == "__main__":
     QLocalServer.removeServer(APP_ID)
     server = QLocalServer()
     if not server.listen(APP_ID):
-        QMessageBox.critical(
-            None, "錯誤", f"無法啟動單例服務器 ({APP_ID}): {server.errorString()}"
-        )
+        show.error(f"無法啟動單例服務器 ({APP_ID}): {server.errorString()}")
         sys.exit(1)
 
     window = MainWindow(cdb_path=cdb_path, local_server=server)

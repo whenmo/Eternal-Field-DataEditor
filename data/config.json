@@ -1,6 +1,9 @@
 {
     "DATABASE_HISTORY": {
         "max_record": 10,
-        "history_paths": []
-    }
+        "history_paths": [
+            "C:/Users/KHUser/Desktop/泣聲/7ss.cdb"
+        ]
+    },
+    "LUA_DEFAULT": "--{} {}\\nlocal cm, m = GetID()\\nfunction cm.initial_effect(c)\\n\\nend\\n"
 }
