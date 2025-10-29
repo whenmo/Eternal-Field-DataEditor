@@ -1,13 +1,14 @@
 from PyQt6.QtWidgets import QWidget, QLayout
-from scripts.global_set.card_db import Card
 from scripts.data_edit.id_item import IDItem
 from scripts.data_edit.setcode_item import SetcodeItem
 from scripts.data_edit.type_item import TypeItem
 from scripts.data_edit.combobox_item import ComboboxItem
 from scripts.data_edit.move_item import MoveItem
 from scripts.basic_item.ui_item import new_title
+from scripts.global_set.card_db import Card
 from scripts.global_set.card_data_set import get_card_data
-from scripts.global_set.app_set import TYPE_AREA
+from scripts.global_set.app_set import TYPE_AREA, TYPE_MONS
+from scripts.global_set.config_set import get_config
 
 
 # 卡片資料組件
@@ -58,6 +59,16 @@ class CardDataItem(QWidget):
         self.race.set_value(f"0x{card.race:X}")
         self.from_.set_value(f"0x{card.from_:X}")
         self.moveset.load_card(card)
+
+        show_illegal = not get_config().get_hide_illegal()
+        is_area = card.is_type(TYPE_AREA)
+        self.life.setVisible(is_area or show_illegal)
+        self.cost.setVisible(not is_area or show_illegal)
+        show_mons = card.is_type(TYPE_MONS) or show_illegal
+        self.atk.setVisible(show_mons)
+        self.race.setVisible(show_mons)
+        self.from_.setVisible(show_mons)
+        self.moveset.setVisible(show_mons)
 
     # 清空當前內容
     def clear(self):

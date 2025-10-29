@@ -6,6 +6,7 @@ _CONFIG_INSTANCE: dict | None = None
 _DEFAULT_CONFIG = {
     "DATABASE_HISTORY": {"max_record": 10, "history_paths": []},
     "LUA_DEFAULT": "--{} {}\\nlocal cm, m = GetID()\\nfunction cm.initial_effect(c)\\n\\nend\\n",
+    "HIDE_ILLEGAL": 1,
 }
 
 
@@ -15,7 +16,7 @@ class ConfigSet:
     def __init__(self, data: dict[str, any]):
         self._data = data
 
-    # ---------------- 更新 & 修改數據 ----------------
+    # ---------------- 保存 ----------------
     def save(self):
         """將當前配置儲存到配置檔"""
         try:
@@ -25,6 +26,7 @@ class ConfigSet:
         except Exception:
             pass
 
+    # ---------------- 歷史 ----------------
     def clear_database_hist(self):
         """清空歷史路徑列表"""
         self._data["DATABASE_HISTORY"]["history_paths"] = []
@@ -47,14 +49,25 @@ class ConfigSet:
 
         self.save()
 
-    # ---------------- 獲取數據 ----------------
+    def get_hist_list(self) -> list[str]:
+        """獲取歷史路徑列表"""
+        return self._data["DATABASE_HISTORY"]["history_paths"]
+
+    # ---------------- 默認 lua ----------------
     def get_default_lua(self) -> str:
         """獲取默認 lua"""
         return self._data["LUA_DEFAULT"]
 
-    def get_hist_list(self) -> list[str]:
-        """獲取歷史路徑列表"""
-        return self._data["DATABASE_HISTORY"]["history_paths"]
+    # ---------------- 自动隐藏不合法组件 ----------------
+    def get_hide_illegal(self) -> bool:
+        """是否 自动隐藏不合法组件"""
+        return self._data["HIDE_ILLEGAL"] == 1
+
+    def set_hide_illegal(self, b: bool):
+        """設定 自动隐藏不合法组件"""
+        val = 1 if b else 0
+        self._data["HIDE_ILLEGAL"] = val
+        self.save()
 
 
 # 獲取 cardinfo.txt

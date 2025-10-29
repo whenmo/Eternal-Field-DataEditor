@@ -2,13 +2,13 @@ import sys
 import os
 import webbrowser
 from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QToolBar, QMenu
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtGui import QAction, QIcon, QPixmap
 from PyQt6.QtCore import Qt, QDataStream
 from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 from scripts.global_set.app_set import (
     APP_ID,
     APP_SIZE,
-    PATH_ICON,
+    APP_ICON_CODE,
     VER,
     WRITEER,
     GIT_URL,
@@ -16,7 +16,7 @@ from scripts.global_set.app_set import (
 from scripts.global_set.card_db import CDB, create_database_file
 from scripts.global_set.config_set import ConfigSet, get_config
 from scripts.data_edit.data_edit_from import DataEditFrom
-from scripts.main_item import new_toolbtn, new_action, FileBtnToolBar
+from scripts.main_item import new_toolbtn, new_action, new_chk_action, FileBtnToolBar
 import scripts.basic_item.msg_item as show
 
 
@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
     local_server: QLocalServer | None
     title: str
     act_paste: QAction
+    act_hide_illegal: QAction
     hist_menu: QMenu
     file_list: FileBtnToolBar
     dataeditor: DataEditFrom
@@ -41,7 +42,9 @@ class MainWindow(QMainWindow):
         self.title = APP_ID.replace("_", " ")
         self.setWindowTitle(self.title)
         self.resize(*APP_SIZE)
-        self.setWindowIcon(QIcon(PATH_ICON))
+        pixmap = QPixmap()
+        pixmap.loadFromData(APP_ICON_CODE, "PNG")
+        self.setWindowIcon(QIcon(pixmap))
         # ---------------- 工具列 ----------------
         main_toolbar = QToolBar("main")
         self.addToolBar(main_toolbar)
@@ -53,6 +56,15 @@ class MainWindow(QMainWindow):
         act_copy_sel = new_action("复制选中卡片", self, file_menu)
         act_copy_all = new_action("复制所有卡片", self, file_menu)
         self.act_paste = new_action("粘贴卡片", self, file_menu)
+        # ---------------- 設置 ----------------
+        set_menu = new_toolbtn("設置", main_toolbar)
+        self.act_hide_illegal = new_chk_action(
+            "自动隐藏不合法组件",
+            self.config.get_hide_illegal(),
+            self,
+            set_menu,
+            self.hide_illegal,
+        )
         # ---------------- 歷史 ----------------
         self.hist_menu = new_toolbtn("数据库历史", main_toolbar)
         self._updata_hist_menu()
@@ -77,7 +89,7 @@ class MainWindow(QMainWindow):
         self.file_list.load_cdb.connect(self.load_cdb)
         # ---------------- 處理命令行參數 (自動載入雙擊的文件) ----------------
         if cdb_path and os.path.exists(cdb_path):
-            self.open_path(cdb_path)
+            self._open_path(cdb_path)
 
     # ---------------- 處理單例通信 ----------------
     def handle_incoming_connection(self):
@@ -103,7 +115,7 @@ class MainWindow(QMainWindow):
             # 讀取傳送過來的文件路徑
             path = stream.readQString()
             if path and os.path.exists(path):
-                self.open_path(path)
+                self._open_path(path)
         except Exception as e:
             # 處理讀取異常
             show.error(f"讀取文件路徑時發生錯誤 : {e}")
@@ -126,7 +138,7 @@ class MainWindow(QMainWindow):
 
     # ---------------- 文件 ----------------
     # 根據路徑打開 cdb
-    def open_path(self, path: str):
+    def _open_path(self, path: str):
         self.add_hist_path(path)
         self.file_list.add_cdbfile(path)
 
@@ -137,7 +149,7 @@ class MainWindow(QMainWindow):
         )
         if not path:
             return
-        self.open_path(path)
+        self._open_path(path)
 
     # 新建 cdb
     def new_cdb(self):
@@ -147,7 +159,12 @@ class MainWindow(QMainWindow):
         if not path:
             return
         create_database_file(path)
-        self.open_path(path)
+        self._open_path(path)
+
+    # ---------------- 設置 ----------------
+    # 自动隐藏不合法组件
+    def hide_illegal(self):
+        self.config.set_hide_illegal(self.act_hide_illegal.isChecked())
 
     # ---------------- 歷史 ----------------
     # 更新歷史欄

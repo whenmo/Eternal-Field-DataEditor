@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QLineEdit, QLayout, QPlainTextEdit
 from PyQt6.QtCore import Qt, pyqtSignal
 from scripts.global_set.card_db import Card
+from scripts.global_set.config_set import get_config
 from scripts.global_set.app_set import TYPE_MONS
 from scripts.basic_item.ui_item import new_frame
 from scripts.data_edit.pic_item import PicItem
@@ -64,7 +65,9 @@ class CardTextItem(QWidget):
             self.gene_desc.setPlainText(gene_desc)
 
         self.desc.setPlainText(desc)
-        self.gene_desc.setVisible(is_mons)
+
+        show_gene = is_mons or not get_config().get_hide_illegal()
+        self.gene_desc.setVisible(show_gene)
 
     # 清空當前內容
     def clear(self):

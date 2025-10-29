@@ -2,19 +2,14 @@ import os
 from typing import Callable
 from PyQt6.QtWidgets import QToolBar, QWidget, QPushButton, QMenu, QToolButton
 from PyQt6.QtGui import QAction
-from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from scripts.global_set.card_db import CDB
 
 
-def new_toolbtn(
-    title: str,
-    toolbar: QToolBar,
-    # style: Qt.ToolButtonStyle = Qt.ToolButtonStyle.ToolButtonTextOnly,
-) -> QMenu:
+def new_toolbtn(title: str, toolbar: QToolBar) -> QMenu:
     menu = QMenu()
     btn = QToolButton()
     btn.setText(title)
-    # btn.setToolButtonStyle(style)
     btn.setMenu(menu)
     btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
     toolbar.addWidget(btn)
@@ -26,6 +21,15 @@ def new_action(title: str, frame, menu: QMenu, func: Callable = None) -> QAction
     menu.addAction(act)
     if func:
         act.triggered.connect(func)
+    return act
+
+
+def new_chk_action(
+    title: str, chk: bool, frame, menu: QMenu, func: Callable = None
+) -> QAction:
+    act = new_action(title, frame, menu, func)
+    act.setCheckable(True)
+    act.setChecked(chk)
     return act
 
 
@@ -94,6 +98,7 @@ class FileBtnToolBar(QToolBar):
         self.file_list.append(cdb_file)
         ind = len(self.file_list) - 1
         self.set_ind(ind)
+        self.load_cdb.emit(cdb_file.cdb)
 
     def load_cdbfile(self, cdbfilebtn: "CdbFileBtn"):
         ind = self.file_list.index(cdbfilebtn)

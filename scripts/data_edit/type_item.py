@@ -1,4 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QComboBox, QVBoxLayout, QHBoxLayout, QLayout
+from PyQt6.QtCore import pyqtSignal
 from scripts.global_set.card_db import Card
 from scripts.global_set.card_data_set import get_card_data
 from scripts.global_set.app_set import TYPE_MAIN, DICT_VAL_TO_TYP
@@ -29,6 +30,7 @@ class TypeItem(QWidget):
     _main_data_default: str
     _main_data_now: str
     _sub_data: dict[str, tuple[str, dict[str, str]]]
+    typ_change = pyqtSignal(int)
 
     def __init__(self, frame: QLayout):
         super().__init__()
@@ -65,6 +67,7 @@ class TypeItem(QWidget):
         sub_default, sub_options = self._sub_data[main_data]
         self.sub.clear()
         _set_combobox(self.sub, sub_default, sub_options)
+        self.typ_change.emit(int(sub_default, 16))
 
     def _main_combobox_change(self):
         main_data = self.main.currentData()

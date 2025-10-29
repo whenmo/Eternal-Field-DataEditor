@@ -5,7 +5,7 @@ import shutil
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QFileDialog
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QKeySequence, QShortcut
-from scripts.global_set.app_set import TYPE_MONS
+from scripts.global_set.app_set import TYPE_MONS, TYPE_AREA
 from scripts.global_set.card_db import CDB, Card
 from scripts.global_set.config_set import get_config
 from scripts.basic_item.ui_item import new_frame, new_btn
@@ -62,23 +62,37 @@ class DataEditFrom(QWidget):
         btn_frame.addStretch()
         # ---------------- 信號接收 ----------------
         self.card_list.refresh_edit.connect(self.refresh_edit)
-        self.card_data.code.find_id.connect(self._find_id)
-        self.card_text.find_name.connect(self._find_name)
-        self.card_text.pic.set_pic.connect(self._set_pic)
+        self.card_data.code.find_id.connect(self.find_id)
+        self.card_data.typ.typ_change.connect(self.hide_illegal)
+        self.card_text.find_name.connect(self.find_name)
+        self.card_text.pic.set_pic.connect(self.set_pic)
 
     # ---------------- 信號事件 ----------------
     # 搜索 ID 開頭的卡
-    def _find_id(self, id: str):
+    def find_id(self, id: str):
         self.card_list.search_id(id)
         self.refresh_edit()
 
     # 搜索 name 開頭的卡
-    def _find_name(self, name: str):
+    def find_name(self, name: str):
         self.card_list.search_name(name)
         self.refresh_edit()
 
+    # 隱藏不合法項
+    def hide_illegal(self, typ: int):
+        show_illegal = not get_config().get_hide_illegal()
+        is_area = bool(typ & TYPE_AREA)
+        self.card_data.life.setVisible(is_area or show_illegal)
+        self.card_data.cost.setVisible(not is_area or show_illegal)
+        show_mons = bool(typ & TYPE_MONS) or show_illegal
+        self.card_text.gene_desc.setVisible(show_mons)
+        self.card_data.atk.setVisible(show_mons)
+        self.card_data.race.setVisible(show_mons)
+        self.card_data.from_.setVisible(show_mons)
+        self.card_data.moveset.setVisible(show_mons)
+
     # 點擊 pic 時導入卡圖
-    def _set_pic(self):
+    def set_pic(self):
         cdb, card = self._get_cdb_and_card()
         if not (cdb and card):
             return

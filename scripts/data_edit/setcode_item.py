@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QApplication,
 )
-from PyQt6.QtCore import Qt
 from scripts.global_set.card_db import Card
 from scripts.global_set.card_data_set import get_card_data
 from scripts.basic_item.ui_item import new_frame, new_title
@@ -90,11 +89,7 @@ class SetcodeItem(QWidget):
                 self._data_ind_dic[value] = i
         # 中央 LineEdit
         set_le = IconLineItem(self._show_default, "", row_frame)
-        set_le.txt.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        )
-        set_le.txt.setFixedWidth(80)  # 固定寬度
-        set_le.set_icon_tip(
+        set_le.set_icon_tips(
             "应为 code or 0xcode or 0Xcode\ncode为不检查大小写的最多 4 位的 16 进制数字",
             "格式正确\n点击左侧按钮即可复制全大写的 0Xcode",
             "格式错误\n应为 code or 0xcode or 0Xcode\ncode为不检查大小写的最多 4 位的 16 进制数字",
@@ -107,7 +102,7 @@ class SetcodeItem(QWidget):
         set_cb.currentIndexChanged.connect(
             lambda idx, le=set_le, cb=set_cb: self._comb_change(cb, le)
         )
-        set_le.txt.textChanged.connect(
+        set_le.line.textChanged.connect(
             lambda text, le=set_le, cb=set_cb: self._line_change(le, cb)
         )
         copy_btn.clicked.connect(lambda chk, le=set_le: self._copy_value(le))
@@ -138,14 +133,14 @@ class SetcodeItem(QWidget):
         with self._updating_block():
             txt: str = _fix_combobox_data(combobox.currentData())
             icle.set_text(txt)
-            icle.set_icon(_get_code_type(txt))
+            icle.set_icon_typ(_get_code_type(txt))
 
     def _line_change(self, icle: IconLineItem, combobox: QComboBox):
         if self._updating:
             return
         with self._updating_block():
             txt = icle.get_text()
-            icle.set_icon(_get_code_type(txt))
+            icle.set_icon_typ(_get_code_type(txt))
             ind, _ = self._trans_code(txt)
             combobox.setCurrentIndex(ind)
 
@@ -160,7 +155,7 @@ class SetcodeItem(QWidget):
                 ind, txt = self._trans_code(self._show_default)
                 self.comb_list[i].setCurrentIndex(ind)
                 self.line_list[i].set_text(txt)
-                self.line_list[i].set_icon(_get_code_type(txt))
+                self.line_list[i].set_icon_typ(_get_code_type(txt))
 
     # 根據 card 設定卡片字段
     def load_card(self, card: Card):
@@ -171,7 +166,7 @@ class SetcodeItem(QWidget):
                 ind, txt = self._trans_code(code)
                 self.comb_list[i].setCurrentIndex(ind)
                 self.line_list[i].set_text(txt)
-                self.line_list[i].set_icon(_get_code_type(txt))
+                self.line_list[i].set_icon_typ(_get_code_type(txt))
 
     # ---------------- 獲取數據 ----------------
     def get_setcode(self) -> int:
