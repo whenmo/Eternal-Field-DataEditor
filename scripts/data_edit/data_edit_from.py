@@ -180,11 +180,15 @@ class DataEditFrom(QWidget):
         if id == 0:
             show.error("ID 格式錯誤")
             return
-        if card.id != id:
+        c = self._pack_edit_to_card(id, alias)
+        if card.id == id:
+            cdb.save_card(c)
+        else:
             cdb.del_id(card.id)
-        if cdb.add_card(self._pack_edit_to_card(id, alias)):
-            self.card_list.on_cdb_change()
-            show.msg("修改成功")
+            if not cdb.add_card(c):
+                return
+        self.card_list.on_cdb_change()
+        show.msg("修改成功")
 
     # 刪除卡片
     def delete_card(self):

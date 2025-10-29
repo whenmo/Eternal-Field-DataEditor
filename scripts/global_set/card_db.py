@@ -163,15 +163,17 @@ class CDB:
         """增加一張卡"""
         if self.has_id(c.id) and not show.quest(f"{c.id} 已存在, 是否覆盖"):
             return False
+        self.save_card(c)
+        return True
+
+    def save_card(self, c: Card):
+        """保存一張卡"""
         self.card_dict[c.id] = c
         self.save()
-
         self.show_id_lst = sorted(self.card_dict.keys(), key=lambda k: int(k))
-
         self.now_id = c.id
         self.select_id_lst.clear()
         self.select_id_lst.add(self.now_id)
-        return True
 
     def del_id(self, id: int):
         """刪除 id 的卡並保存"""
